@@ -1,1 +1,0 @@
-- Created SettingsPanel.svelte with props-based design, luxurious styling using gradients and animations, proper section ordering as specified.
