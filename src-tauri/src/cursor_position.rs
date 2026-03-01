@@ -168,12 +168,68 @@ pub fn get_mouse_screen_position() -> Option<(f64, f64)> {
     macos::get_mouse_screen_position()
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "linux")]
+fn is_x11_session() -> bool {
+    if let Ok(session_type) = std::env::var("XDG_SESSION_TYPE") {
+        if session_type.eq_ignore_ascii_case("x11") {
+            return true;
+        }
+        if session_type.eq_ignore_ascii_case("wayland") {
+            return false;
+        }
+    }
+
+    std::env::var_os("DISPLAY").is_some() && std::env::var_os("WAYLAND_DISPLAY").is_none()
+}
+
+#[cfg(target_os = "linux")]
+fn parse_xdotool_location(output: &str) -> Option<(f64, f64)> {
+    let mut x = None;
+    let mut y = None;
+
+    for line in output.lines() {
+        if let Some(v) = line.strip_prefix("X=") {
+            x = v.trim().parse::<f64>().ok();
+        } else if let Some(v) = line.strip_prefix("Y=") {
+            y = v.trim().parse::<f64>().ok();
+        }
+    }
+
+    match (x, y) {
+        (Some(px), Some(py)) => Some((px, py)),
+        _ => None,
+    }
+}
+
+#[cfg(target_os = "linux")]
 pub fn get_cursor_screen_position() -> Option<(f64, f64)> {
     None
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "linux")]
+pub fn get_mouse_screen_position() -> Option<(f64, f64)> {
+    if !is_x11_session() {
+        return None;
+    }
+
+    let output = std::process::Command::new("xdotool")
+        .args(["getmouselocation", "--shell"])
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    parse_xdotool_location(&String::from_utf8_lossy(&output.stdout))
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+pub fn get_cursor_screen_position() -> Option<(f64, f64)> {
+    None
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
 pub fn get_mouse_screen_position() -> Option<(f64, f64)> {
     None
 }
@@ -181,4 +237,24 @@ pub fn get_mouse_screen_position() -> Option<(f64, f64)> {
 #[tauri::command]
 pub fn get_cursor_screen_position_command() -> Option<(f64, f64)> {
     get_cursor_screen_position()
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(target_os = "linux")]
+    use super::parse_xdotool_location;
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn parse_xdotool_location_parses_xy() {
+        let result = parse_xdotool_location("X=120\nY=44\nSCREEN=0\nWINDOW=123");
+        assert_eq!(result, Some((120.0, 44.0)));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn parse_xdotool_location_missing_values_returns_none() {
+        let result = parse_xdotool_location("SCREEN=0\nWINDOW=123");
+        assert_eq!(result, None);
+    }
 }

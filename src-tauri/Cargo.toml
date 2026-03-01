@@ -29,12 +29,14 @@ tauri-plugin-store = "2"
 uuid = { version = "1.0", features = ["v4"] }
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 tokio = { version = "1", features = ["full"] }
+tauri-plugin-notification = "2.3.3"
+window-vibrancy = "0.7.1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
 accessibility-sys = "0.2"
 core-foundation = "0.10"
 cocoa = "0.26"
 objc = "0.2"
-tauri-plugin-notification = "2.3.3"
-window-vibrancy = "0.7.1"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("cargo-clippy"))'] }

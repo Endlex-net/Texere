@@ -36,6 +36,29 @@ pub fn auto_paste_permission_granted() -> bool {
     true
 }
 
+#[cfg(target_os = "linux")]
+fn is_x11_session() -> bool {
+    if let Ok(session_type) = std::env::var("XDG_SESSION_TYPE") {
+        if session_type.eq_ignore_ascii_case("x11") {
+            return true;
+        }
+        if session_type.eq_ignore_ascii_case("wayland") {
+            return false;
+        }
+    }
+
+    std::env::var_os("DISPLAY").is_some() && std::env::var_os("WAYLAND_DISPLAY").is_none()
+}
+
+#[cfg(target_os = "linux")]
+fn xdotool_available() -> bool {
+    std::process::Command::new("xdotool")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
 #[tauri::command]
 pub fn can_enable_auto_paste() -> bool {
     auto_paste_permission_granted()
@@ -46,13 +69,11 @@ pub fn can_enable_auto_paste() -> bool {
 #[cfg(target_os = "macos")]
 fn get_frontmost_bundle_id() -> Option<String> {
     unsafe {
-        let workspace: *mut objc::runtime::Object =
-            msg_send![class!(NSWorkspace), sharedWorkspace];
+        let workspace: *mut objc::runtime::Object = msg_send![class!(NSWorkspace), sharedWorkspace];
         if workspace.is_null() {
             return None;
         }
-        let front_app: *mut objc::runtime::Object =
-            msg_send![workspace, frontmostApplication];
+        let front_app: *mut objc::runtime::Object = msg_send![workspace, frontmostApplication];
         if front_app.is_null() {
             return None;
         }
@@ -79,13 +100,11 @@ fn get_frontmost_bundle_id() -> Option<String> {
 #[cfg(target_os = "macos")]
 fn activate_app_by_bundle_id(bundle_id: &str) -> bool {
     unsafe {
-        let workspace: *mut objc::runtime::Object =
-            msg_send![class!(NSWorkspace), sharedWorkspace];
+        let workspace: *mut objc::runtime::Object = msg_send![class!(NSWorkspace), sharedWorkspace];
         if workspace.is_null() {
             return false;
         }
-        let running_apps: *mut objc::runtime::Object =
-            msg_send![workspace, runningApplications];
+        let running_apps: *mut objc::runtime::Object = msg_send![workspace, runningApplications];
         if running_apps.is_null() {
             return false;
         }
@@ -175,7 +194,29 @@ pub fn record_frontmost_app(prev: &PreviousApp) {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "linux")]
+pub fn record_frontmost_app(prev: &PreviousApp) {
+    if !is_x11_session() || !xdotool_available() {
+        return;
+    }
+
+    let output = std::process::Command::new("xdotool")
+        .arg("getactivewindow")
+        .output();
+
+    if let Ok(output) = output {
+        if output.status.success() {
+            let window_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !window_id.is_empty() {
+                if let Ok(mut lock) = prev.0.lock() {
+                    *lock = Some(window_id);
+                }
+            }
+        }
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
 pub fn record_frontmost_app(_prev: &PreviousApp) {}
 
 /// Copy content to clipboard, close the window, and optionally auto-paste.
@@ -241,6 +282,24 @@ pub fn copy_and_dismiss(
                     auto_paste_macos(bundle_id.as_deref());
                     in_flight.store(false, Ordering::SeqCst);
                     log::info!("auto_paste worker end: in_flight_released=true");
+                });
+            } else {
+                log::warn!("Skipping auto-paste: another operation is already in flight");
+            }
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            let in_flight = auto_paste_in_flight.0.clone();
+
+            let acquired = in_flight
+                .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+                .is_ok();
+
+            if acquired {
+                std::thread::spawn(move || {
+                    auto_paste_linux(bundle_id.as_deref());
+                    in_flight.store(false, Ordering::SeqCst);
                 });
             } else {
                 log::warn!("Skipping auto-paste: another operation is already in flight");
@@ -343,6 +402,35 @@ fn auto_paste_macos(bundle_id: Option<&str>) {
                 log::error!("osascript fallback launch error: {}", err);
             }
         }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn auto_paste_linux(window_id: Option<&str>) {
+    if !is_x11_session() {
+        log::warn!("Auto-paste on Linux is only enabled for X11 sessions");
+        return;
+    }
+    if !xdotool_available() {
+        log::warn!("Auto-paste on Linux requires xdotool to be installed");
+        return;
+    }
+
+    if let Some(id) = window_id {
+        let _ = std::process::Command::new("xdotool")
+            .args(["windowactivate", "--sync", id])
+            .status();
+        std::thread::sleep(std::time::Duration::from_millis(120));
+    }
+
+    let paste_status = std::process::Command::new("xdotool")
+        .args(["key", "--clearmodifiers", "ctrl+v"])
+        .status();
+
+    match paste_status {
+        Ok(status) if status.success() => log::info!("Auto-paste via xdotool succeeded"),
+        Ok(status) => log::warn!("Auto-paste via xdotool failed: status={status}"),
+        Err(err) => log::warn!("Auto-paste via xdotool failed to launch: {err}"),
     }
 }
 
