@@ -36,3 +36,28 @@ jobs:
         env:
           RUSTFLAGS: ""
         run: cargo test --locked
+
+  backend-linux:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src-tauri
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - name: Rust version
+        run: rustc --version && cargo --version
+      - name: Prepare frontend dist placeholder for Tauri context
+        run: mkdir -p ../dist
+      - name: Linux compile check
+        env:
+          RUSTFLAGS: ""
+        run: cargo check --locked

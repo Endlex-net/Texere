@@ -225,8 +225,8 @@ pub fn create_settings_window(app: &AppHandle) {
                 unsafe {
                     NSApp().setActivationPolicy_(NSApplicationActivationPolicyAccessory);
                 }
+                let _ = app_handle.set_activation_policy(tauri::ActivationPolicy::Accessory);
             }
-            let _ = app_handle.set_activation_policy(tauri::ActivationPolicy::Accessory);
         }
     });
 }
