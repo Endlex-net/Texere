@@ -27,5 +27,10 @@ jobs:
         working-directory: src-tauri
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Rust version
+        run: rustc --version && cargo --version
       - name: Rust tests
-        run: cargo test
+        env:
+          RUSTFLAGS: ""
+        run: cargo test --locked
