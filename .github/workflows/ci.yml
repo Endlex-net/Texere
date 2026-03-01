@@ -30,6 +30,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Rust version
         run: rustc --version && cargo --version
+      - name: Prepare frontend dist placeholder for Tauri context
+        run: mkdir -p ../dist
       - name: Rust tests
         env:
           RUSTFLAGS: ""
