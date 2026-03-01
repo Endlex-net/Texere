@@ -252,14 +252,14 @@ fn activate_app_and_focus_window(window: &WebviewWindow) {
         NSApp, NSApplication, NSWindow,
         NSApplicationActivationPolicy::NSApplicationActivationPolicyRegular,
     };
-    use cocoa::base::id;
+    use cocoa::base::{id, YES};
 
     unsafe {
         let ns_app = NSApp();
         // Switch to Regular policy so the app can own the foreground
         ns_app.setActivationPolicy_(NSApplicationActivationPolicyRegular);
         // Force-activate ignoring other apps
-        ns_app.activateIgnoringOtherApps_(true);
+        ns_app.activateIgnoringOtherApps_(YES);
 
         if let Ok(ns_window) = window.ns_window() {
             let ns_window = ns_window as id;
