@@ -14,7 +14,7 @@
 
   function startDrag(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (target.closest('.control-btn')) return;
+    if (target.closest('.control-btn, .icon-btn, .format-button, .undo-button')) return;
 
     getCurrentWindow().startDragging().catch(() => {
       // noop
