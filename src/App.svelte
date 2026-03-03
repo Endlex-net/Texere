@@ -20,6 +20,7 @@
   let templates: Template[] = [];
   let showTemplateSelector = false;
   let vimEnabled = true;
+  let softWrap = false;
   let fatalError = '';
   
   // Double ESC to close
@@ -32,6 +33,7 @@
     const settings = await loadSettings();
     initAppearance(settings.appearance);
     vimEnabled = settings.vim.enabled;
+    softWrap = settings.softWrap;
   }
 
   async function refreshTemplates() {
@@ -177,6 +179,7 @@
     <Editor 
       bind:this={editorComponent}
       {vimEnabled}
+      {softWrap}
       on:change={handleChange}
       on:vimModeChange={handleVimModeChange}
     />

@@ -20,6 +20,7 @@
   let settings: TexereSettings = {
     hotkeys: { summon: '', copyAndDismiss: '' },
     vim: { enabled: true },
+    softWrap: false,
     ai: {
       apiKey: '',
       model: DEFAULT_AI_MODEL,
@@ -166,6 +167,13 @@
         <label for="vim-toggle">Vim Mode</label>
         <label class="switch">
           <input id="vim-toggle" type="checkbox" bind:checked={settings.vim.enabled} />
+          <span class="slider round"></span>
+        </label>
+      </div>
+      <div class="setting-row">
+        <label for="soft-wrap-toggle">Soft Wrap (display only)</label>
+        <label class="switch">
+          <input id="soft-wrap-toggle" type="checkbox" bind:checked={settings.softWrap} />
           <span class="slider round"></span>
         </label>
       </div>

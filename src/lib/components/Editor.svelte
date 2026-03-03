@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
-  import { createEditor, setVimMode, getContent, destroyEditor } from '../editor/createEditor';
+  import { createEditor, setVimMode, setSoftWrap, getContent, destroyEditor } from '../editor/createEditor';
   import type { EditorView } from '@codemirror/view';
 
   export let vimEnabled = true;
+  export let softWrap = false;
   export let initialContent = '';
 
   const dispatch = createEventDispatcher<{
@@ -20,6 +21,7 @@
     editorView = createEditor({
       element: editorElement,
       vimEnabled,
+      softWrap,
       initialContent,
       onChange: (content) => {
         dispatch('change', content);
@@ -46,6 +48,11 @@
     setVimMode(editorView, vimEnabled, (mode) => {
       dispatch('vimModeChange', mode);
     });
+  }
+
+  // React to softWrap prop changes
+  $: if (editorView) {
+    setSoftWrap(editorView, softWrap);
   }
 
   // Expose methods for parent component

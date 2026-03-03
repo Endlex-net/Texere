@@ -27,3 +27,13 @@ dist-ssr
 .sisyphus/
 .hive/
 *.swp
+
+# Test/build artifacts
+coverage/
+src-tauri/target/
+
+# OpenSpec and local CLI automation artifacts
+openspec/
+.opencode/
+.github/prompts/
+.github/skills/

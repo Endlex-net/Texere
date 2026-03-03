@@ -23,6 +23,7 @@ describe("settings", () => {
     const defaults = getDefault();
     expect(defaults.hotkeys.summon).toBe('CommandOrControl+Shift+Space');
     expect(defaults.vim.enabled).toBe(true);
+    expect(defaults.softWrap).toBe(false);
     expect(defaults.autoPaste).toBe(false);
     expect(defaults.appearance.mode).toBe('auto');
     expect(defaults.appearance.style).toBe('tokyo-night');
@@ -164,6 +165,35 @@ describe("settings", () => {
           autoPaste: false,
         }),
       });
+    });
+  });
+
+  describe('softWrap settings', () => {
+    it('should default softWrap to false', () => {
+      const defaults = getDefault();
+      expect(defaults.softWrap).toBe(false);
+    });
+
+    it('should preserve softWrap=true when loading settings', async () => {
+      const mockSettings = {
+        ...getDefault(),
+        softWrap: true,
+      };
+      (invoke as any).mockResolvedValue(mockSettings);
+
+      const settings = await loadSettings();
+      expect(settings.softWrap).toBe(true);
+    });
+
+    it('should default softWrap to false when missing', async () => {
+      const mockSettings = {
+        ...getDefault(),
+        softWrap: undefined,
+      };
+      (invoke as any).mockResolvedValue(mockSettings);
+
+      const settings = await loadSettings();
+      expect(settings.softWrap).toBe(false);
     });
   });
 
