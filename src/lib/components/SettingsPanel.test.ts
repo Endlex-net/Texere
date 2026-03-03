@@ -37,6 +37,7 @@ describe('SettingsPanel', () => {
     (settingsMod.loadSettings as any).mockResolvedValue({
       hotkeys: { summon: 'CommandOrControl+Shift+Space', copyAndDismiss: 'CommandOrControl+Enter' },
       vim: { enabled: true },
+      softWrap: false,
       ai: {
         apiKey: '',
         model: 'gpt-4o-mini',

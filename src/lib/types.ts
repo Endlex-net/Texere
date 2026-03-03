@@ -27,6 +27,7 @@ export type StyleId = 'tokyo-night' | 'catppuccin' | 'rose-pine' | 'nord';
 export interface TexereSettings {
   hotkeys: { summon: string; copyAndDismiss: string; };
   vim: { enabled: boolean; };
+  softWrap: boolean;
   ai: { apiKey: string; model: string; baseUrl: string; systemPrompt: string; };
   appearance: {
     bgColor: string;

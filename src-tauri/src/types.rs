@@ -133,6 +133,7 @@ impl Default for AppearanceSettings {
 pub struct TexereSettings {
     pub hotkeys: Hotkeys,
     pub vim: VimSettings,
+    pub soft_wrap: bool,
     pub ai: AiSettings,
     pub appearance: AppearanceSettings,
     pub auto_paste: bool,
@@ -143,6 +144,7 @@ impl Default for TexereSettings {
         Self {
             hotkeys: Hotkeys::default(),
             vim: VimSettings::default(),
+            soft_wrap: false,
             ai: AiSettings::default(),
             appearance: AppearanceSettings::default(),
             auto_paste: false,
@@ -213,6 +215,7 @@ mod tests {
                 copy_and_dismiss: "Cmd+Enter".into(),
             },
             vim: VimSettings { enabled: true },
+            soft_wrap: true,
             ai: AiSettings {
                 api_key: "test-key".into(),
                 model: "gpt-4".into(),
@@ -258,6 +261,7 @@ mod tests {
 
         let parsed: TexereSettings = serde_json::from_str(legacy).unwrap();
         assert_eq!(parsed.hotkeys.summon, "CommandOrControl+Shift+Enter");
+        assert_eq!(parsed.soft_wrap, false);
         assert_eq!(parsed.appearance.mode, Mode::Auto);
         assert_eq!(parsed.appearance.style, Style::TokyoNight);
         assert_eq!(parsed.appearance.theme, Some(Theme::CatppuccinMocha));

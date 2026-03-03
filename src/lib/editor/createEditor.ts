@@ -6,10 +6,12 @@ import { vim, getCM } from '@replit/codemirror-vim';
 
 // Compartment for dynamic vim mode toggle
 const vimCompartment = new Compartment();
+const softWrapCompartment = new Compartment();
 
 export interface EditorOptions {
   element: HTMLElement;
   vimEnabled?: boolean;
+  softWrap?: boolean;
   initialContent?: string;
   onChange?: (content: string) => void;
   onVimModeChange?: (mode: string) => void;
@@ -19,14 +21,16 @@ export interface EditorOptions {
  * Create a new CodeMirror editor instance
  */
 export function createEditor(options: EditorOptions): EditorView {
-  const { element, vimEnabled = true, initialContent = '', onChange, onVimModeChange } = options;
+  const { element, vimEnabled = true, softWrap = false, initialContent = '', onChange, onVimModeChange } = options;
 
   // Vim extension - must be first for keystroke priority
   const vimExtension = vimEnabled ? vim() : [];
+  const softWrapExtension = softWrap ? EditorView.lineWrapping : [];
 
   const extensions = [
     // Vim mode first!
     vimCompartment.of(vimExtension),
+    softWrapCompartment.of(softWrapExtension),
     // Basic editor setup
     basicSetup,
     // Markdown highlighting
@@ -111,6 +115,15 @@ export function setVimMode(view: EditorView, enabled: boolean, onVimModeChange?:
   } else {
     onVimModeChange?.('disabled');
   }
+}
+
+/**
+ * Toggle soft wrap on/off
+ */
+export function setSoftWrap(view: EditorView, enabled: boolean): void {
+  view.dispatch({
+    effects: softWrapCompartment.reconfigure(enabled ? EditorView.lineWrapping : []),
+  });
 }
 
 /**

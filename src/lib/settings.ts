@@ -14,6 +14,7 @@ export function getDefault(): TexereSettings {
     vim: {
       enabled: true
     },
+    softWrap: false,
     ai: {
       apiKey: '',
       model: DEFAULT_AI_MODEL,
@@ -91,6 +92,10 @@ function normalizeSettings(input: TexereSettings): TexereSettings {
     typeof input?.autoPaste === 'boolean'
       ? input.autoPaste
       : defaults.autoPaste;
+  const softWrap =
+    typeof input?.softWrap === 'boolean'
+      ? input.softWrap
+      : defaults.softWrap;
 
   // Handle appearance settings
   let mode: Mode = input?.appearance?.mode;
@@ -126,6 +131,7 @@ function normalizeSettings(input: TexereSettings): TexereSettings {
     vim: {
       enabled: Boolean(input?.vim?.enabled),
     },
+    softWrap,
     ai: {
       apiKey: String(input?.ai?.apiKey ?? defaults.ai.apiKey),
       model: aiModel,
