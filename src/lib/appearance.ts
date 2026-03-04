@@ -33,6 +33,7 @@ interface ThemePalette {
   surface: string;
   surface2: string;
   text: string;
+  caret: string;
   muted: string;
   border: string;
   hover: string;
@@ -58,6 +59,7 @@ const THEMES: Record<ThemeId, ThemePalette> = {
     surface:     'rgba(49, 50, 68, 0.78)',   // #313244 (surface0)
     surface2:    'rgba(69, 71, 90, 0.72)',   // #45475a (surface1)
     text:        '#cdd6f4',                  // text
+    caret:       '#f5e0dc',                  // rosewater (high-contrast caret)
     muted:       '#a6adc8',                  // subtext0
     border:      'rgba(205, 214, 244, 0.20)',
     hover:       'rgba(137, 180, 250, 0.20)',
@@ -74,6 +76,7 @@ const THEMES: Record<ThemeId, ThemePalette> = {
     surface:     'rgba(31, 29, 46, 0.78)',   // #1f1d2e (surface)
     surface2:    'rgba(38, 35, 58, 0.72)',   // #26233a (overlay)
     text:        '#e0def4',                  // text
+    caret:       '#ebbcba',                  // rose
     muted:       '#908caa',                  // subtle
     border:      'rgba(224, 222, 244, 0.15)',
     hover:       'rgba(196, 167, 231, 0.18)',
@@ -90,6 +93,7 @@ const THEMES: Record<ThemeId, ThemePalette> = {
     surface:     'rgba(42, 39, 63, 0.78)',   // #2a273f (surface)
     surface2:    'rgba(57, 53, 82, 0.72)',   // #393552 (overlay)
     text:        '#e0def4',                  // text
+    caret:       '#ea9a97',                  // love
     muted:       '#908caa',                  // subtle
     border:      'rgba(224, 222, 244, 0.15)',
     hover:       'rgba(196, 167, 231, 0.18)',
@@ -106,6 +110,7 @@ const THEMES: Record<ThemeId, ThemePalette> = {
     surface:     'rgba(36, 40, 59, 0.78)',   // #24283b (bg_highlight)
     surface2:    'rgba(41, 46, 66, 0.72)',   // #292e42
     text:        '#c0caf5',                  // fg
+    caret:       '#bb9af7',                  // purple
     muted:       '#565f89',                  // comment
     border:      'rgba(192, 202, 245, 0.15)',
     hover:       'rgba(122, 162, 247, 0.18)',
@@ -122,6 +127,7 @@ const THEMES: Record<ThemeId, ThemePalette> = {
     surface:     'rgba(59, 66, 82, 0.78)',   // #3b4252 (nord1)
     surface2:    'rgba(67, 76, 94, 0.72)',   // #434c5e (nord2)
     text:        '#eceff4',                  // nord6
+    caret:       '#88c0d0',                  // nord8
     muted:       '#d8dee9',                  // nord4
     border:      'rgba(236, 239, 244, 0.15)',
     hover:       'rgba(136, 192, 208, 0.18)',
@@ -140,6 +146,7 @@ const THEMES: Record<ThemeId, ThemePalette> = {
     surface:     'rgba(204, 208, 218, 0.80)', // #ccd0da (surface0)
     surface2:    'rgba(188, 192, 204, 0.75)', // #bcc0cc (surface1)
     text:        '#4c4f69',                   // text
+    caret:       '#1e66f5',                   // blue
     muted:       '#6c6f85',                   // subtext0
     border:      'rgba(76, 79, 105, 0.20)',
     hover:       'rgba(30, 102, 245, 0.12)',
@@ -156,6 +163,7 @@ const THEMES: Record<ThemeId, ThemePalette> = {
     surface:     'rgba(242, 233, 222, 0.80)', // #f2e9de (overlay)
     surface2:    'rgba(232, 222, 207, 0.75)', // (derived)
     text:        '#575279',                   // text
+    caret:       '#907aa9',                   // iris
     muted:       '#9893a5',                   // subtle
     border:      'rgba(87, 82, 121, 0.18)',
     hover:       'rgba(144, 122, 169, 0.14)',
@@ -172,6 +180,7 @@ const THEMES: Record<ThemeId, ThemePalette> = {
     surface:     'rgba(216, 222, 233, 0.80)', // #d8dee9 (nord4)
     surface2:    'rgba(200, 207, 221, 0.75)', // (derived)
     text:        '#2e3440',                   // nord0
+    caret:       '#5e81ac',                   // nord10
     muted:       '#4c566a',                   // nord3
     border:      'rgba(46, 52, 64, 0.18)',
     hover:       'rgba(94, 129, 172, 0.14)',
@@ -248,6 +257,7 @@ export function applyAppearance(
   root.style.setProperty('--texere-surface', palette.surface);
   root.style.setProperty('--texere-surface-2', palette.surface2);
   root.style.setProperty('--texere-text', palette.text);
+  root.style.setProperty('--texere-caret', palette.caret);
   root.style.setProperty('--texere-muted', palette.muted);
   root.style.setProperty('--texere-border', palette.border);
   root.style.setProperty('--texere-hover', palette.hover);

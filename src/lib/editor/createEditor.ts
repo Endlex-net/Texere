@@ -1,5 +1,5 @@
 import { EditorView, keymap } from '@codemirror/view';
-import { EditorState, Compartment } from '@codemirror/state';
+import { EditorState, Compartment, Prec } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { vim, getCM } from '@replit/codemirror-vim';
@@ -36,7 +36,7 @@ export function createEditor(options: EditorOptions): EditorView {
     // Markdown highlighting
     markdown(),
     // Editor styling
-    EditorView.theme({
+    Prec.highest(EditorView.theme({
       '&': {
         height: '100%',
         fontSize: '14px',
@@ -52,7 +52,19 @@ export function createEditor(options: EditorOptions): EditorView {
       '.cm-content': {
         fontFamily: 'Menlo, Monaco, "Courier New", monospace',
         padding: '12px',
-        caretColor: 'var(--texere-text, #cdd6f4)',
+        caretColor: 'var(--texere-caret, var(--texere-text, #cdd6f4))',
+      },
+      '.cm-cursor, .cm-dropCursor': {
+        borderLeftColor: 'var(--texere-caret, var(--texere-text, #cdd6f4)) !important',
+      },
+      '&.cm-focused .cm-cursor, &.cm-focused .cm-dropCursor': {
+        borderLeftColor: 'var(--texere-caret, var(--texere-text, #cdd6f4)) !important',
+      },
+      '&.cm-focused.cm-fat-cursor .cm-cursor': {
+        backgroundColor: 'var(--texere-caret, var(--texere-text, #cdd6f4)) !important',
+      },
+      '.cm-fat-cursor': {
+        backgroundColor: 'var(--texere-caret, var(--texere-text, #cdd6f4)) !important',
       },
       '.cm-gutters': {
         backgroundColor: 'transparent',
@@ -65,7 +77,7 @@ export function createEditor(options: EditorOptions): EditorView {
       '.cm-activeLineGutter': {
         backgroundColor: 'transparent',
       },
-    }),
+    })),
     // Change listener
     EditorView.updateListener.of((update) => {
       if (update.docChanged && onChange) {

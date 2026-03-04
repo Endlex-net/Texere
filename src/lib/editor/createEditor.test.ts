@@ -29,7 +29,11 @@ vi.mock('@codemirror/state', () => {
     }),
   };
 
-  return { Compartment, EditorState };
+  const Prec = {
+    highest: (value: unknown) => value,
+  };
+
+  return { Compartment, EditorState, Prec };
 });
 
 vi.mock('@codemirror/view', () => {
