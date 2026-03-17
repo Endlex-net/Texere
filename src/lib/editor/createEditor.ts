@@ -1,4 +1,4 @@
-import { EditorView, keymap } from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
 import { EditorState, Compartment, Prec } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
 import { markdown } from '@codemirror/lang-markdown';
@@ -7,6 +7,7 @@ import { vim, getCM } from '@replit/codemirror-vim';
 // Compartment for dynamic vim mode toggle
 const vimCompartment = new Compartment();
 const softWrapCompartment = new Compartment();
+const vimModeHandlers = new WeakMap<EditorView, (event: { mode?: string }) => void>();
 
 export interface EditorOptions {
   element: HTMLElement;
@@ -97,12 +98,11 @@ export function createEditor(options: EditorOptions): EditorView {
   });
 
   if (vimEnabled) {
+    syncVimModeListener(view, onVimModeChange);
     const cm = getCM(view);
-    if (cm) {
-      if (onVimModeChange) onVimModeChange(cm.state.vim?.mode || 'normal');
-      cm.on('vim-mode-change', (e: any) => onVimModeChange?.(e.mode));
-    }
+    onVimModeChange?.(cm?.state.vim?.mode || 'normal');
   } else {
+    syncVimModeListener(view);
     onVimModeChange?.('disabled');
   }
 
@@ -119,14 +119,34 @@ export function setVimMode(view: EditorView, enabled: boolean, onVimModeChange?:
   });
 
   if (enabled) {
+    syncVimModeListener(view, onVimModeChange);
     const cm = getCM(view);
-    if (cm) {
-      if (onVimModeChange) onVimModeChange(cm.state.vim?.mode || 'normal');
-      cm.on('vim-mode-change', (e: any) => onVimModeChange?.(e.mode));
-    }
+    onVimModeChange?.(cm?.state.vim?.mode || 'normal');
   } else {
+    syncVimModeListener(view);
     onVimModeChange?.('disabled');
   }
+}
+
+function syncVimModeListener(view: EditorView, onVimModeChange?: (mode: string) => void): void {
+  const cm = getCM(view);
+  const existingHandler = vimModeHandlers.get(view);
+
+  if (cm && existingHandler) {
+    cm.off('vim-mode-change', existingHandler);
+  }
+
+  if (!cm || !onVimModeChange) {
+    vimModeHandlers.delete(view);
+    return;
+  }
+
+  const handler = (event: { mode?: string }) => {
+    onVimModeChange(event.mode || 'normal');
+  };
+
+  cm.on('vim-mode-change', handler);
+  vimModeHandlers.set(view, handler);
 }
 
 /**
@@ -169,5 +189,6 @@ export function clearContent(view: EditorView): void {
  * Destroy editor instance
  */
 export function destroyEditor(view: EditorView): void {
+  syncVimModeListener(view);
   view.destroy();
 }
