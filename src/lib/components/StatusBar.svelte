@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
 
   export let vimMode = 'NORMAL';
@@ -7,21 +8,36 @@
   export let vimEnabled = true;
   export let hint = ''; // ESC double-press hint
 
+  const dispatch = createEventDispatcher<{
+    toggleVim: void;
+  }>();
+
   function startDrag() {
     getCurrentWindow().startDragging().catch(() => {
       // ignore
     });
   }
 
+  function toggleVim() {
+    dispatch('toggleVim');
+  }
+
 </script>
 
 <div class="status-bar" role="toolbar" tabindex="-1" aria-label="Status bar" on:mousedown={startDrag}>
   <div class="left">
-    {#if vimEnabled}
-      <span class="vim-mode">{vimMode}</span>
-    {:else}
-      <span class="vim-disabled">-- VIM OFF --</span>
-    {/if}
+    <button
+      type="button"
+      class:vim-mode={vimEnabled}
+      class:vim-disabled={!vimEnabled}
+      class="vim-toggle"
+      aria-pressed={vimEnabled}
+      aria-label={vimEnabled ? 'Disable Vim mode for this window' : 'Enable Vim mode for this window'}
+      on:mousedown|stopPropagation
+      on:click|stopPropagation={toggleVim}
+    >
+      {vimEnabled ? vimMode : '-- VIM OFF --'}
+    </button>
   </div>
   
   <div class="center">
@@ -76,6 +92,22 @@
     font-style: italic;
     font-weight: 600;
     letter-spacing: 0.03em;
+  }
+
+  .vim-toggle {
+    -webkit-app-region: no-drag;
+    appearance: none;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .vim-toggle:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--texere-text, #0b1220) 35%, transparent);
+    outline-offset: 4px;
+    border-radius: 4px;
   }
 
   .count {

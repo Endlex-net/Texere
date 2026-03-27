@@ -76,6 +76,7 @@ vi.mock('@replit/codemirror-vim', () => ({
     on: (_event: string, cb: (event: { mode: string }) => void) => {
       hoisted.modeListener = cb;
     },
+    off: vi.fn(),
   }),
 }));
 

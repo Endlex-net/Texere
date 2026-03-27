@@ -19,6 +19,8 @@
   let hint = ''; // For showing ESC double-press hint
   let templates: Template[] = [];
   let showTemplateSelector = false;
+  let persistedVimEnabled = true;
+  let windowVimOverride: boolean | null = null;
   let vimEnabled = true;
   let softWrap = false;
   let fatalError = '';
@@ -32,9 +34,14 @@
   async function refreshRuntimeSettings() {
     const settings = await loadSettings();
     initAppearance(settings.appearance);
-    vimEnabled = settings.vim.enabled;
+    persistedVimEnabled = settings.vim.enabled;
+    if (windowVimOverride === persistedVimEnabled) {
+      windowVimOverride = null;
+    }
     softWrap = settings.softWrap;
   }
+
+  $: vimEnabled = windowVimOverride ?? persistedVimEnabled;
 
   async function refreshTemplates() {
     templates = await getTemplates();
@@ -93,10 +100,15 @@
   function handleVimModeChange(event: CustomEvent<string>) {
     const mode = event.detail;
     if (mode === 'disabled') {
-      vimMode = '-- VIM OFF --';
+      vimMode = 'NORMAL';
     } else {
       vimMode = mode.toUpperCase();
     }
+  }
+
+  function handleToggleVim() {
+    const nextVimEnabled = !vimEnabled;
+    windowVimOverride = nextVimEnabled === persistedVimEnabled ? null : nextVimEnabled;
   }
 
 
@@ -186,7 +198,7 @@
   </div>
   
   <div slot="statusbar">
-    <StatusBar {vimMode} {wordCount} {charCount} {hint} />
+    <StatusBar {vimMode} {vimEnabled} {wordCount} {charCount} {hint} on:toggleVim={handleToggleVim} />
   </div>
 </WindowContainer>
 
