@@ -100,6 +100,7 @@ describe('App window-local vim toggle', () => {
 
     const toggle = await view.findByRole('button', { name: 'Disable Vim mode for this window' });
     expect(toggle).toHaveTextContent('NORMAL');
+    expect(toggle).toHaveAttribute('tabindex', '-1');
 
     await fireEvent.click(toggle);
 

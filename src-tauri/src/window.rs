@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::{atomic::Ordering, Arc, Mutex};
 use tauri::{
     AppHandle, Emitter, LogicalPosition, Manager, WebviewWindow, WebviewWindowBuilder,
@@ -7,6 +8,9 @@ use crate::clipboard::{AutoPasteInFlight, PreviousApp};
 
 /// Window pool for instant summon (<50ms)
 pub type WindowPool = Arc<Mutex<Vec<WebviewWindow>>>;
+
+/// Maps noteId → window label for multi-open prevention
+pub type NoteWindowMap = Arc<Mutex<HashMap<String, String>>>;
 
 /// Target pool size - number of pre-created hidden windows
 const POOL_TARGET_SIZE: usize = 2;
@@ -64,7 +68,8 @@ pub fn create_editor_window(app: &AppHandle, visible: bool) -> Result<WebviewWin
         .always_on_top(true)
         .visible_on_all_workspaces(true)
         .decorations(false)
-        .transparent(false)  // Disable transparency to fix rendering
+        .transparent(true)
+        .shadow(false)
         .resizable(true)
         .visible(visible)
         .focused(false);
@@ -77,9 +82,6 @@ pub fn create_editor_window(app: &AppHandle, visible: bool) -> Result<WebviewWin
     let window = builder.build()
         .map_err(|e| format!("Failed to create window: {}", e))?;
         
-    // Temporarily disable vibrancy to test if it's causing the blank window
-    // crate::appearance::apply_vibrancy(&window);
-    
     Ok(window)
 }
 
@@ -273,6 +275,16 @@ fn activate_app_and_focus_window(_window: &WebviewWindow) {
     // No-op on non-macOS platforms
 }
 
+/// Count visible editor windows (excludes pooled off-screen windows).
+fn active_editor_count(app: &AppHandle) -> usize {
+    app.webview_windows()
+        .into_iter()
+        .filter(|(label, w)| {
+            label.starts_with("editor-") && matches!(w.is_visible(), Ok(true))
+        })
+        .count()
+}
+
 /// Show a window from the pool (or create new if empty)
 #[tauri::command]
 pub fn show_pooled_window(
@@ -282,12 +294,7 @@ pub fn show_pooled_window(
     auto_paste_in_flight: tauri::State<AutoPasteInFlight>,
 ) -> Result<String, String> {
     // Check max window count before creating new windows
-    let active_count = app.webview_windows()
-        .into_iter()
-        .filter(|(label, _)| label.starts_with("editor-"))
-        .count();
-    
-    if active_count >= MAX_WINDOWS {
+    if active_editor_count(&app) >= MAX_WINDOWS {
         return Err(format!("Maximum {} windows reached. Close some windows first.", MAX_WINDOWS));
     }
     
@@ -311,7 +318,7 @@ pub fn show_pooled_window(
         if let Err(e) = window.set_focus() {
             eprintln!("Failed to focus window: {}", e);
         }
-        let _ = window.emit("texere://refresh-settings", ());
+        let _ = window.emit_to(&label, "texere://refresh-settings", ());
         #[cfg(target_os = "macos")]
         activate_app_and_focus_window(&window);
         (window, label)
@@ -325,10 +332,10 @@ pub fn show_pooled_window(
         if let Err(e) = window.set_focus() {
             eprintln!("Failed to focus window: {}", e);
         }
-        let _ = window.emit("texere://refresh-settings", ());
+        let label = window.label().to_string();
+        let _ = window.emit_to(&label, "texere://refresh-settings", ());
         #[cfg(target_os = "macos")]
         activate_app_and_focus_window(&window);
-        let label = window.label().to_string();
         (window, label)
     };
 
@@ -346,7 +353,8 @@ pub fn show_pooled_window(
         }
 
         let _ = focus_window.set_focus();
-        let _ = focus_window.emit("texere://force-focus", ());
+        let focus_label = focus_window.label().to_string();
+        let _ = focus_window.emit_to(&focus_label, "texere://force-focus", ());
         let _ = focus_window.eval("window.dispatchEvent(new CustomEvent('texere://force-focus')); try { document.querySelector('.cm-content')?.focus(); } catch (_) {}");
     });
     
@@ -359,7 +367,15 @@ pub fn show_pooled_window(
 
 /// Close a specific window
 #[tauri::command]
-pub fn close_window(window: WebviewWindow) -> Result<(), String> {
+pub fn close_window(
+    window: WebviewWindow,
+    note_window_map: tauri::State<NoteWindowMap>,
+) -> Result<(), String> {
+    // Remove from NoteWindowMap by window label
+    let label = window.label().to_string();
+    if let Ok(mut map) = note_window_map.lock() {
+        map.retain(|_, v| v != &label);
+    }
     window.close()
         .map_err(|e| format!("Failed to close window: {}", e))
 }
@@ -377,6 +393,128 @@ pub fn list_windows(app: AppHandle) -> Vec<String> {
             }
         })
         .collect()
+}
+
+/// Payload for the `texere://load-note` event sent to the webview
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadNotePayload {
+    pub id: String,
+    pub name: String,
+    pub content: String,
+}
+
+/// Open a note window from the pool, or focus the existing window if already open.
+/// Called from the Tray menu handler (not via invoke).
+pub fn open_note_window_internal(
+    app: &AppHandle,
+    note_id: String,
+    name: String,
+    content: String,
+) -> Result<(), String> {
+    let note_window_map = app.state::<NoteWindowMap>();
+
+    // 1. Check for an existing open window for this note
+    {
+        let map = note_window_map.lock().map_err(|_| "NoteWindowMap lock failed")?;
+        if let Some(label) = map.get(&note_id) {
+            if let Some(window) = app.get_webview_window(label) {
+                let _ = window.show();
+                let _ = window.set_focus();
+                #[cfg(target_os = "macos")]
+                activate_app_and_focus_window(&window);
+                return Ok(());
+            }
+            // Stale entry — fall through to remove + create
+        }
+    }
+
+    // 2. Remove any stale entry (window destroyed without cleanup)
+    {
+        let mut map = note_window_map.lock().map_err(|_| "NoteWindowMap lock failed")?;
+        map.retain(|_, label| app.get_webview_window(label).is_some());
+    }
+
+    // 2b. Enforce MAX_WINDOWS cap before opening a new window (M7)
+    if active_editor_count(app) >= MAX_WINDOWS {
+        return Err(format!("Maximum {} windows reached. Close some windows first.", MAX_WINDOWS));
+    }
+
+    // 3. Take a window from the pool (or create one on-demand)
+    let pool = app.state::<WindowPool>();
+    let window = {
+        let mut pool_lock = pool.lock().map_err(|_| "WindowPool lock failed")?;
+        pool_lock.pop()
+    };
+
+    let window = if let Some(w) = window {
+        let w_label = w.label().to_string();
+        position_window_near_cursor(&w);
+        let _ = w.show();
+        let _ = w.set_focus();
+        let _ = w.emit_to(&w_label, "texere://refresh-settings", ());
+        let _ = w.emit_to(&w_label, "texere://load-note", LoadNotePayload {
+            id: note_id.clone(),
+            name,
+            content,
+        });
+        #[cfg(target_os = "macos")]
+        activate_app_and_focus_window(&w);
+        w
+    } else {
+        let w = create_editor_window(app, false)?;
+        let w_label = w.label().to_string();
+        position_window_near_cursor(&w);
+        let _ = w.show();
+        let _ = w.set_focus();
+        let _ = w.emit_to(&w_label, "texere://refresh-settings", ());
+        let _ = w.emit_to(&w_label, "texere://load-note", LoadNotePayload {
+            id: note_id.clone(),
+            name,
+            content,
+        });
+        #[cfg(target_os = "macos")]
+        activate_app_and_focus_window(&w);
+        w
+    };
+
+    // 4. Register in NoteWindowMap
+    let label = window.label().to_string();
+    {
+        let mut map = note_window_map.lock().map_err(|_| "NoteWindowMap lock failed")?;
+        map.insert(note_id, label);
+    }
+
+    // 5. Replenish pool asynchronously
+    let pool_clone = Arc::clone(&*pool);
+    replenish_pool(app.clone(), pool_clone);
+
+    Ok(())
+}
+
+/// Tauri command wrapper for `open_note_window_internal`.
+#[tauri::command]
+pub fn open_note_window(
+    app: AppHandle,
+    note_id: String,
+    name: String,
+    content: String,
+) -> Result<(), String> {
+    open_note_window_internal(&app, note_id, name, content)
+}
+
+/// Bind an existing open window to a noteId in the NoteWindowMap.
+/// Called by the frontend after the user names a temporary window.
+#[tauri::command]
+pub fn bind_note_window(
+    app: AppHandle,
+    note_id: String,
+    window_label: String,
+) -> Result<(), String> {
+    let map = app.state::<NoteWindowMap>();
+    let mut lock = map.lock().map_err(|_| "NoteWindowMap lock failed")?;
+    lock.insert(note_id, window_label);
+    Ok(())
 }
 
 /// Register the global hotkey for summoning windows.
