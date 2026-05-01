@@ -31,6 +31,7 @@
       class:vim-mode={vimEnabled}
       class:vim-disabled={!vimEnabled}
       class="vim-toggle"
+      tabindex="-1"
       aria-pressed={vimEnabled}
       aria-label={vimEnabled ? 'Disable Vim mode for this window' : 'Enable Vim mode for this window'}
       on:mousedown|stopPropagation

@@ -1,8 +1,9 @@
-import { EditorView } from '@codemirror/view';
-import { EditorState, Compartment, Prec } from '@codemirror/state';
+import { EditorView, keymap } from '@codemirror/view';
+import { EditorState, Compartment } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { vim, getCM } from '@replit/codemirror-vim';
+import { indentWithTab } from '@codemirror/commands';
 
 // Compartment for dynamic vim mode toggle
 const vimCompartment = new Compartment();
@@ -36,8 +37,10 @@ export function createEditor(options: EditorOptions): EditorView {
     basicSetup,
     // Markdown highlighting
     markdown(),
+    // Indent with Tab when vim is disabled
+    keymap.of([indentWithTab]),
     // Editor styling
-    Prec.highest(EditorView.theme({
+    EditorView.theme({
       '&': {
         height: '100%',
         fontSize: '14px',
@@ -78,7 +81,7 @@ export function createEditor(options: EditorOptions): EditorView {
       '.cm-activeLineGutter': {
         backgroundColor: 'transparent',
       },
-    })),
+    }),
     // Change listener
     EditorView.updateListener.of((update) => {
       if (update.docChanged && onChange) {

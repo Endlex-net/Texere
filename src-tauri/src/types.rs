@@ -163,6 +163,16 @@ pub struct Template {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Note {
+    pub id: String,
+    pub name: String,
+    pub content: String,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum VimMode {
     Normal,
@@ -280,6 +290,35 @@ mod tests {
         let json = serde_json::to_string(&template).unwrap();
         let deserialized: Template = serde_json::from_str(&json).unwrap();
         assert_eq!(template, deserialized);
+    }
+
+    #[test]
+    fn test_note_roundtrip() {
+        let note = crate::types::Note {
+            id: "abc-123".into(),
+            name: "My Note".into(),
+            content: "Hello world".into(),
+            created_at: 1700000000000,
+            updated_at: 1700000001000,
+        };
+
+        let json = serde_json::to_string(&note).unwrap();
+        let deserialized: crate::types::Note = serde_json::from_str(&json).unwrap();
+        assert_eq!(note, deserialized);
+    }
+
+    #[test]
+    fn test_note_camel_case_serialization() {
+        let note = crate::types::Note {
+            id: "x".into(),
+            name: "N".into(),
+            content: "C".into(),
+            created_at: 1,
+            updated_at: 2,
+        };
+        let json = serde_json::to_string(&note).unwrap();
+        assert!(json.contains("\"createdAt\""));
+        assert!(json.contains("\"updatedAt\""));
     }
 
     #[test]

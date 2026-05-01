@@ -5,6 +5,7 @@ pub mod settings;
 pub mod window;
 pub mod clipboard;
 pub mod templates;
+pub mod notes;
 pub mod cursor_position;
 pub mod ai;
 pub mod notifications;
@@ -66,6 +67,9 @@ tauri_plugin_log::Builder::default()
       let settings_val = settings::get_settings(app.handle().clone());
       let pool = window::init_pool(app.handle());
       app.manage(pool);
+      let note_window_map: window::NoteWindowMap = std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()));
+      app.manage(note_window_map);
+      app.manage(notes::NotesLock(std::sync::Mutex::new(())));
 
       if let Err(e) = window::register_summon_hotkey(app.handle(), &settings_val.hotkeys.summon) {
           eprintln!("Failed to register summon hotkey: {}", e);
@@ -79,6 +83,7 @@ tauri_plugin_log::Builder::default()
       window::show_pooled_window,
       window::close_window,
       window::list_windows,
+      window::open_note_window,
       clipboard::copy_and_dismiss,
       clipboard::dismiss_without_copy,
       clipboard::can_enable_auto_paste,
@@ -86,6 +91,9 @@ tauri_plugin_log::Builder::default()
       templates::get_templates,
       templates::save_template,
       templates::delete_template,
+      notes::get_notes,
+      notes::save_note,
+      notes::delete_note,
       ai::format_text
 ])
     .run(tauri::generate_context!())

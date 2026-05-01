@@ -104,14 +104,14 @@
     width: 24px;
     height: 24px;
     padding: 0;
-    background: var(--texere-surface-2, rgba(255, 255, 255, 0.08));
-    border: 1px solid var(--texere-border, rgba(255, 255, 255, 0.2));
+    background: transparent;
+    border: none;
     border-radius: 6px;
     color: var(--texere-accent, #1e3a8a);
     font-weight: 700;
     font-size: 13px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.2s ease;
     -webkit-app-region: no-drag;
   }
 
@@ -122,21 +122,19 @@
     width: 24px;
     height: 24px;
     padding: 0;
-    background: rgba(250, 204, 21, 0.22);
-    border: 1px solid rgba(250, 204, 21, 0.55);
+    background: transparent;
+    border: none;
     border-radius: 6px;
     color: #fde68a;
     font-size: 13px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.2s ease;
     -webkit-app-region: no-drag;
   }
 
   .undo-button:hover:not(:disabled) {
-    background: rgba(250, 204, 21, 0.3);
-    border-color: rgba(250, 204, 21, 0.8);
+    background: rgba(250, 204, 21, 0.14);
     color: #fef3c7;
-    transform: translateY(-1px);
   }
 
   .undo-button:disabled {
@@ -145,9 +143,8 @@
   }
 
   .format-button:hover:not(:disabled) {
-    background: var(--texere-hover, rgba(255, 255, 255, 0.15));
-    border-color: var(--texere-accent, #89b4fa);
-    color: var(--texere-accent, #1e3a8a);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--texere-accent, #89b4fa);
   }
 
   .format-button:disabled {

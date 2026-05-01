@@ -48,6 +48,14 @@ export interface Template {
   updatedAt: number;
 }
 
+export interface Note {
+  id: string;
+  name: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface EditorState {
   content: string;
   wordCount: number;
