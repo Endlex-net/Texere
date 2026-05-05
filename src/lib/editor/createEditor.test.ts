@@ -64,7 +64,7 @@ vi.mock('@codemirror/view', () => {
     },
   };
 
-  return { EditorView, keymap: {} };
+  return { EditorView, keymap: { of: (value: unknown) => ({ kind: 'keymap', value }) } };
 });
 
 vi.mock('codemirror', () => ({ basicSetup: { kind: 'basic-setup' } }));
