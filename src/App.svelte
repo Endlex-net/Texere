@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { tick } from 'svelte';
-  import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
+  import { getCurrentWindow } from '@tauri-apps/api/window';
   import { invoke } from '@tauri-apps/api/core';
   import WindowContainer from './lib/components/WindowContainer.svelte';
   import Editor from './lib/components/Editor.svelte';
@@ -27,6 +27,7 @@
   let vimEnabled = true;
   let softWrap = false;
   let collapsed = false;
+  let expandedWidth = 480;
   let expandedHeight = 360;
   let fatalError = '';
 
@@ -269,15 +270,26 @@
   }
 
   async function toggleCollapse() {
-    if (collapsed) {
-      collapsed = false;
-      await getCurrentWindow().setSize(new LogicalSize(480, expandedHeight));
-    } else {
-      const size = await getCurrentWindow().innerSize();
-      const scale = await getCurrentWindow().scaleFactor();
-      expandedHeight = Math.round(size.height / scale);
-      collapsed = true;
-      await getCurrentWindow().setSize(new LogicalSize(480, 24));
+    const win = getCurrentWindow();
+    const nextCollapsed = !collapsed;
+
+    if (nextCollapsed) {
+      const size = await win.innerSize();
+      const scale = await win.scaleFactor();
+      expandedWidth = size.width / scale;
+      expandedHeight = size.height / scale;
+    }
+
+    collapsed = nextCollapsed;
+    try {
+      await invoke('set_window_collapsed', {
+        collapsed: nextCollapsed,
+        width: expandedWidth,
+        height: expandedHeight,
+      });
+    } catch (err) {
+      collapsed = !nextCollapsed;
+      console.error('Failed to toggle collapsed window state:', err);
     }
   }
 </script>

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{atomic::Ordering, Arc, Mutex};
 use tauri::{
-    AppHandle, Emitter, LogicalPosition, Manager, WebviewWindow, WebviewWindowBuilder,
+    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, WebviewWindow, WebviewWindowBuilder,
 };
 use uuid::Uuid;
 use crate::clipboard::{AutoPasteInFlight, PreviousApp};
@@ -378,6 +378,81 @@ pub fn close_window(
     }
     window.close()
         .map_err(|e| format!("Failed to close window: {}", e))
+}
+
+/// Collapse/expand an editor window by forcing the native window frame.
+///
+/// On macOS transparent + borderless windows, frontend `setSize()` can resize the
+/// webview content without updating the NSWindow frame used for hit-testing. That
+/// leaves an invisible lower area intercepting mouse events. This command updates
+/// both Tauri's logical size and the native NSWindow frame.
+#[tauri::command]
+pub fn set_window_collapsed(
+    window: WebviewWindow,
+    collapsed: bool,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    let target_width = width.max(1.0);
+    let target_height = if collapsed { 24.0 } else { height.max(24.0) };
+    let target_size = LogicalSize::new(target_width, target_height);
+
+    let _ = window.set_resizable(true);
+    let _ = window.set_min_size(None::<LogicalSize<f64>>);
+    let _ = window.set_max_size(None::<LogicalSize<f64>>);
+
+    window
+        .set_size(target_size)
+        .map_err(|e| format!("Failed to set window size: {}", e))?;
+
+    force_native_window_frame(&window, target_width, target_height)?;
+
+    if collapsed {
+        let pinned_size = LogicalSize::new(target_width, target_height);
+        let _ = window.set_min_size(Some(pinned_size));
+        let _ = window.set_max_size(Some(pinned_size));
+        let _ = window.set_resizable(false);
+    } else {
+        let _ = window.set_min_size(None::<LogicalSize<f64>>);
+        let _ = window.set_max_size(None::<LogicalSize<f64>>);
+        let _ = window.set_resizable(true);
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn force_native_window_frame(
+    window: &WebviewWindow,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    use cocoa::appkit::NSWindow;
+    use cocoa::base::{id, NO, YES};
+    use cocoa::foundation::{NSPoint, NSRect, NSSize};
+
+    unsafe {
+        let ns_window = window
+            .ns_window()
+            .map_err(|e| format!("Failed to get NSWindow: {}", e))? as id;
+        let current_frame: NSRect = ns_window.frame();
+        let top_edge = current_frame.origin.y + current_frame.size.height;
+        let new_origin = NSPoint::new(current_frame.origin.x, top_edge - height);
+        let new_size = NSSize::new(width, height);
+        let new_frame = NSRect::new(new_origin, new_size);
+        ns_window.setFrame_display_animate_(new_frame, YES, NO);
+    }
+
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn force_native_window_frame(
+    _window: &WebviewWindow,
+    _width: f64,
+    _height: f64,
+) -> Result<(), String> {
+    Ok(())
 }
 
 /// List all open editor window labels
