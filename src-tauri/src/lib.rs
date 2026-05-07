@@ -82,6 +82,7 @@ tauri_plugin_log::Builder::default()
       settings::set_settings,
       window::show_pooled_window,
       window::close_window,
+      window::set_window_collapsed,
       window::list_windows,
       window::open_note_window,
       clipboard::copy_and_dismiss,
