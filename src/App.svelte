@@ -276,8 +276,8 @@
     if (nextCollapsed) {
       const size = await win.innerSize();
       const scale = await win.scaleFactor();
-      expandedWidth = Math.round(size.width / scale);
-      expandedHeight = Math.round(size.height / scale);
+      expandedWidth = size.width / scale;
+      expandedHeight = size.height / scale;
     }
 
     collapsed = nextCollapsed;
