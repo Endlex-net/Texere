@@ -27,12 +27,15 @@
 
 ```bash
 # 通过 Homebrew 安装
+brew tap Endlex-net/tap
 brew install --cask texere
 ```
 
-或从 [GitHub Releases](https://github.com/your-org/texere/releases) 下载 `.dmg` 安装包。
+或从 [GitHub Releases](https://github.com/Endlex-net/Texere/releases) 下载 `.dmg` 安装包。
 
-> 正式发布版已完成 Developer ID 签名与公证，首次打开无需手动绕过 Gatekeeper。
+> 更新：`brew upgrade --cask texere`。当前阶段应用内不提供自动更新，brew 是主升级路径。
+>
+> 正式发布版通过 Developer ID 签名与公证后无需手动绕过 Gatekeeper。当前仓库 CI 尚未集成 notarization 步骤，手动 `.dmg` 安装可能需要右键打开。
 
 ---
 
@@ -167,6 +170,9 @@ make build-signed APPLE_SIGNING_IDENTITY='Apple Development: Your Name (XXXXXXXX
 **其他开发命令**
 
 ```bash
+bun run release:cut -- 0.1.7-alpha   # 统一版本号、提交、打 tag，并默认 push 分支和 tag
+bun run release:cut -- 0.1.7-alpha --no-push
+                         # 同上，但只在本地创建 release commit + tag，便于预演
 bun run check        # TypeScript + Svelte 类型检查
 bun run test         # 前端单元测试（Vitest）
 cd src-tauri && cargo test   # Rust 单元测试

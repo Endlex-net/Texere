@@ -31,6 +31,7 @@ dist-ssr
 # Test/build artifacts
 coverage/
 src-tauri/target/
+release-artifacts/
 
 # OpenSpec and local CLI automation artifacts
 openspec/

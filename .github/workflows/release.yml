@@ -10,7 +10,44 @@ permissions:
   contents: write
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate version alignment
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAURI_VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          CARGO_VERSION=$(grep '^version' src-tauri/Cargo.toml | head -1 | sed 's/version *= *"\(.*\)"/\1/')
+
+          echo "Tag version:  $TAG_VERSION"
+          echo "package.json: $PKG_VERSION"
+          echo "tauri.conf:   $TAURI_VERSION"
+          echo "Cargo.toml:   $CARGO_VERSION"
+
+          MISMATCH=0
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Version mismatch: tag ($TAG_VERSION) != package.json ($PKG_VERSION)"
+            MISMATCH=1
+          fi
+          if [ "$TAG_VERSION" != "$TAURI_VERSION" ]; then
+            echo "::error::Version mismatch: tag ($TAG_VERSION) != tauri.conf.json ($TAURI_VERSION)"
+            MISMATCH=1
+          fi
+          if [ "$TAG_VERSION" != "$CARGO_VERSION" ]; then
+            echo "::error::Version mismatch: tag ($TAG_VERSION) != Cargo.toml ($CARGO_VERSION)"
+            MISMATCH=1
+          fi
+          if [ $MISMATCH -ne 0 ]; then
+            echo "::error::Version alignment check FAILED — all four sources must match"
+            exit 1
+          fi
+          echo "Version alignment check PASSED"
+
   build:
+    needs: validate
     strategy:
       fail-fast: false
       matrix:
@@ -46,5 +83,18 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "Texere ${{ github.ref_name }}"
           releaseDraft: true
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
           args: --config src-tauri/tauri.conf.json
+
+      - name: Prepare stable macOS release assets
+        if: matrix.platform == 'macos-latest'
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          node scripts/prepare-macos-release.mjs "$VERSION"
+
+      - name: Upload stable macOS assets to release
+        if: matrix.platform == 'macos-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "$GITHUB_REF_NAME" release-artifacts/*
