@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Texere",
-  "version": "0.2.0-alpha",
+  "version": "0.2.1-alpha",
   "identifier": "com.mendlex.texere",
   "build": {
     "frontendDist": "../dist",
