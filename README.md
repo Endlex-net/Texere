@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/macOS-12+-000000?logo=apple&logoColor=white">
   <img src="https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white">
   <img src="https://img.shields.io/badge/Svelte-5-FF3E00?logo=svelte&logoColor=white">
-  <img src="https://img.shields.io/badge/version-0.1.0-blue">
+  <img src="https://img.shields.io/badge/version-0.2.0-alpha-blue">
 </p>
 
 ---
