@@ -24,7 +24,7 @@ if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
 
 function run(command, commandArgs, options = {}) {
   const result = spawnSync(command, commandArgs, {
-    cwd: ROOT,
+    cwd: options.cwd ?? ROOT,
     stdio: options.capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
     encoding: 'utf8'
   })
@@ -77,6 +77,7 @@ const branch = currentBranch()
 console.log(`Cutting release ${tag} on branch ${branch}...`)
 
 run('node', ['scripts/bump-version.mjs', version])
+run('cargo', ['check'], { cwd: resolve(ROOT, 'src-tauri') })
 
 const changedFiles = run('git', ['status', '--porcelain'], { capture: true })
 if (!changedFiles) {
@@ -84,7 +85,7 @@ if (!changedFiles) {
   process.exit(1)
 }
 
-run('git', ['add', 'package.json', 'src-tauri/tauri.conf.json', 'src-tauri/Cargo.toml', 'README.md'])
+run('git', ['add', 'package.json', 'src-tauri/tauri.conf.json', 'src-tauri/Cargo.toml', 'src-tauri/Cargo.lock', 'README.md'])
 run('git', ['commit', '-m', `chore(release): cut ${tag}`])
 run('git', ['tag', '-a', tag, '-m', tag])
 
