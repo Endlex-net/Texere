@@ -1,7 +1,7 @@
 {
   "name": "texere",
   "private": true,
-  "version": "0.2.1-alpha",
+  "version": "0.2.2-alpha",
   "type": "module",
   "scripts": {
     "bump:version": "node scripts/bump-version.mjs",
