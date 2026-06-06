@@ -15,7 +15,7 @@
   import { getTemplates, saveTemplate, deleteTemplate } from '../templates';
   import type { Template } from '../types';
   
-  const appVersion = '0.1.0';
+  const appVersion = __APP_VERSION__;
 
   let settings: TexereSettings = {
     hotkeys: { summon: '', copyAndDismiss: '' },

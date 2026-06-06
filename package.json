@@ -1,9 +1,11 @@
 {
   "name": "texere",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "bump:version": "node scripts/bump-version.mjs",
+    "release:cut": "node scripts/release-cut.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
